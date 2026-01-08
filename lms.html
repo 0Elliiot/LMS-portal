@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional LMS Portal</title>
+    <style>
+        :root { --primary: #007bff; --success: #28a745; --bg: #f4f7f6; --dark: #333; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: var(--bg); color: var(--dark); }
+        
+        /* Navigation */
+        nav { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-around; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        nav a { color: white; text-decoration: none; font-weight: bold; cursor: pointer; padding: 8px 15px; border-radius: 5px; transition: 0.3s; }
+        nav a:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Layout */
+        .container { max-width: 900px; margin: 30px auto; padding: 25px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        .card { border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px; background: #fff; border-left: 5px solid var(--primary); transition: 0.3s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        /* Video Container Logic */
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; background: #000; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+        /* Forms & Buttons */
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; cursor: pointer; border-radius: 8px; font-size: 16px; width: 100%; transition: 0.3s; margin-top: 10px; font-weight: bold; }
+        .btn:hover { background: #0056b3; box-shadow: 0 4px 10px rgba(0,123,255,0.3); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+        
+        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        /* Quiz Alignment Fix */
+        .quiz-option { display: flex; align-items: center; margin-bottom: 12px; padding: 12px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; transition: 0.2s; background: #fafafa; }
+        .quiz-option:hover { background: #eef6ff; border-color: var(--primary); }
+        .quiz-option.selected { border-color: var(--primary); background: #e7f1ff; }
+        .quiz-option input[type="radio"] { width: 18px; height: 18px; margin: 0 15px 0 0; cursor: pointer; }
+        
+        /* Progress Bar */
+        #progressBarContainer { background: #e9ecef; border-radius: 20px; height: 25px; margin: 20px 0; overflow: hidden; border: 1px solid #ddd; }
+        #progressBar { background: linear-gradient(90deg, #28a745, #85d390); width: 0%; height: 100%; transition: 0.8s ease; }
+        
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .status-msg { color: var(--success); font-weight: bold; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <nav id="nav">
+        <a onclick="showPage('dashboard')" id="nav-dashboard" class="hidden">Dashboard</a>
+        <a onclick="showPage('courses')" class="hidden">Courses</a>
+        <a onclick="showPage('quiz')" class="hidden">Take Quiz</a>
+        <a onclick="showPage('profile')" class="hidden">My Profile</a>
+        <a onclick="logout()" class="hidden">Logout</a>
+    </nav>
+
+    <div class="container">
+        <div id="login">
+            <h2 style="text-align: center; color: var(--primary);">Student Learning Portal</h2>
+            <div class="card" style="border-left: none;">
+                <input type="text" id="username" placeholder="Username">
+                <input type="password" id="password" placeholder="Password">
+                <button class="btn" onclick="login()">Login</button>
+                <button class="btn" style="background: #6c757d;" onclick="register()">Register New Account</button>
+                <p id="authMessage" class="status-msg" style="color: red;"></p>
+            </div>
+        </div>
+
+        <div id="dashboard" class="hidden">
+            <h2 id="userGreeting">Welcome!</h2>
+            <div class="card">
+                <h3>Overall Progress</h3>
+                <div id="progressBarContainer"><div id="progressBar"></div></div>
+                <p id="progressText" style="font-weight: bold;">Courses Completed: 0/10</p>
+            </div>
+        </div>
+
+        <div id="courses" class="hidden">
+            <h2>My Learning Path</h2>
+            <div id="courseListContainer">
+                </div>
+        </div>
+
+        <div id="coursePlayer" class="hidden">
+            <button class="btn" style="width: auto; background: #6c757d; margin-bottom: 20px;" onclick="showPage('courses')">← Back to Course List</button>
+            <h2 id="playerTitle">Course Title</h2>
+            <div class="video-wrapper">
+                <iframe id="playerVideo" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </div>
+            <div class="card">
+                <h3>Description</h3>
+                <p id="playerDesc"></p>
+                <button id="completeActionBtn" class="btn" style="background: var(--success);">Mark as Completed ✅</button>
+            </div>
+        </div>
+
+        <div id="quiz" class="hidden">
+            <h2>Test Your Knowledge (Question <span id="qNum">1</span>/10)</h2>
+            <div id="quizContainer" class="card">
+                <div id="questionArea">
+                    <h3 id="qText">Loading question...</h3>
+                    <div id="optionsArea"></div>
+                </div>
+                <button id="nextBtn" class="btn" onclick="goToNextQuestion()" disabled>Next Question →</button>
+            </div>
+            <div id="quizResultArea" class="hidden card" style="text-align: center;">
+                <h3>Quiz Results</h3>
+                <p id="finalScore" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);"></p>
+                <button class="btn" onclick="restartQuiz()">Restart Quiz</button>
+            </div>
+        </div>
+
+        <div id="profile" class="hidden">
+            <h2>Detailed Student Profile</h2>
+            <div class="profile-grid">
+                <div><label><b>Full Name</b></label><input type="text" id="p_name" placeholder="Anil Kumar"></div>
+                <div><label><b>Date of Birth</b></label><input type="date" id="p_dob"></div>
+                <div><label><b>Mobile No.</b></label><input type="text" id="p_mob" placeholder="98XXXXXXXX"></div>
+                <div><label><b>Email Address</b></label><input type="email" id="p_email" placeholder="anil@example.com"></div>
+                <div><label><b>Aadhar Card No.</b></label><input type="text" id="p_adhar" placeholder="0000 0000 0000"></div>
+                <div><label><b>Current Address</b></label><input type="text" id="p_add" placeholder="House No, City, State"></div>
+            </div>
+            <div style="margin-top: 10px;">
+                <label><b>About Me</b></label>
+                <textarea id="p_about" rows="4" placeholder="Tell us about your learning goals..."></textarea>
+            </div>
+            <button class="btn" onclick="saveProfile()">Save Full Profile</button>
+            <p id="profileMessage" class="status-msg"></p>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentQuizIndex = 0;
+        let score = 0;
+        let selectedAnswer = null;
+
+        // --- Course Data with Videos ---
+        const coursesData = [
+            { id: 'HTML', title: '1. HTML5 Fundamentals', desc: 'Learn semantic tags and web structure.', vid: 'https://www.youtube.com/embed/HcOc7P5BMi4' },
+            { id: 'CSS', title: '2. CSS3 Styling', desc: 'Flexbox, Grid, and Animations.', vid: 'https://www.youtube.com/embed/yfoY53QXEnI' },
+            { id: 'JS', title: '3. JavaScript Basics', desc: 'DOM manipulation and Logic.', vid: 'https://www.youtube.com/embed/W6NZfCO5SIk' },
+            { id: 'Node', title: '4. Node.js Intro', desc: 'Building Backend with Node.', vid: 'https://www.youtube.com/embed/TlB_eWDSMt4' },
+            { id: 'Express', title: '5. Express Framework', desc: 'Routing and APIs.', vid: 'https://www.youtube.com/embed/7H_QH9nipNs' },
+            { id: 'Mongo', title: '6. MongoDB Database', desc: 'NoSQL storage.', vid: 'https://www.youtube.com/embed/J6mDkcqU_ZE' },
+            { id: 'React', title: '7. React.js Library', desc: 'Frontend components.', vid: 'https://www.youtube.com/embed/Ke90Tje7VS0' },
+            { id: 'Git', title: '8. Git & GitHub', desc: 'Version control.', vid: 'https://www.youtube.com/embed/8JJ101D3knE' },
+            { id: 'API', title: '9. REST APIs', desc: 'Backend communication.', vid: 'https://www.youtube.com/embed/GZvSYJDk-us' },
+            { id: 'Deploy', title: '10. Project Deployment', desc: 'Go Live!', vid: 'https://www.youtube.com/embed/ufKRYe8ZPaw' }
+        ];
+
+        const quizData = [
+            { q: "HTML ka use kis liye hota hai?", a: "Web Structure", options: ["Web Structure", "Styling", "Database"] },
+            { q: "Backend ke liye konsi file use ho rahi hai?", a: "server.js", options: ["index.html", "server.js", "style.css"] },
+            { q: "JavaScript mein variable banane ke liye kya use karte hain?", a: "let/const", options: ["var", "let/const", "Dono"] },
+            { q: "CSS ka full form kya hai?", a: "Cascading Style Sheets", options: ["Creative Style Sheets", "Cascading Style Sheets", "Color Style Sheets"] },
+            { q: "JSON ka use kya hai?", a: "Data Store/Transfer", options: ["Data Store/Transfer", "UI Design", "Networking"] },
+            { q: "Node.js kya hai?", a: "Runtime Environment", options: ["Library", "Language", "Runtime Environment"] },
+            { q: "React kisne develop kiya?", a: "Facebook", options: ["Google", "Facebook", "Microsoft"] },
+            { q: "Git kya hai?", a: "Version Control", options: ["Database", "Version Control", "Editor"] },
+            { q: "SQL ka use hota hai?", a: "Database", options: ["Database", "Frontend", "Styling"] },
+            { q: "HTTP ki full form?", a: "Hypertext Transfer Protocol", options: ["Hypertext Transfer Protocol", "High Transfer Protocol", "Hyper Text Tool"] }
+        ];
+
+        function showPage(page) {
+            ['login', 'dashboard', 'courses', 'quiz', 'profile', 'coursePlayer'].forEach(p => document.getElementById(p).classList.add('hidden'));
+            document.getElementById(page).classList.remove('hidden');
+            if(page === 'courses') loadCourseCards();
+            if(page === 'quiz') restartQuiz();
+            if(currentUser) updateDashboard();
+        }
+
+        function loadCourseCards() {
+            const container = document.getElementById('courseListContainer');
+            container.innerHTML = "";
+            coursesData.forEach(course => {
+                const card = document.createElement('div');
+                card.className = "card";
+                card.style.cursor = "pointer";
+                card.onclick = () => openPlayer(course);
+                card.innerHTML = `<h3>${course.title}</h3><p>${course.desc}</p><p><small>Click to start lesson</small></p>`;
+                container.appendChild(card);
+            });
+        }
+
+        function openPlayer(course) {
+            showPage('coursePlayer');
+            document.getElementById('playerTitle').innerText = course.title;
+            document.getElementById('playerDesc').innerText = course.desc;
+            document.getElementById('playerVideo').src = course.vid;
+            document.getElementById('completeActionBtn').onclick = () => markComplete(course.id);
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const response = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+            const data = await response.json();
+            if (data.success) { currentUser = username; localStorage.setItem('user', username); showLoggedIn(); showPage('dashboard'); }
+            else { alert('Login failed!'); }
+        }
+
+        async function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const response = await fetch('/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+            const data = await response.json();
+            document.getElementById('authMessage').innerText = data.message;
+        }
+
+        function showLoggedIn() {
+            document.querySelectorAll('#nav a').forEach(a => a.classList.remove('hidden'));
+            document.getElementById('login').classList.add('hidden');
+        }
+
+        function logout() { localStorage.removeItem('user'); location.reload(); }
+
+        function restartQuiz() {
+            currentQuizIndex = 0; score = 0;
+            document.getElementById('quizContainer').classList.remove('hidden');
+            document.getElementById('quizResultArea').classList.add('hidden');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            selectedAnswer = null;
+            document.getElementById('nextBtn').disabled = true;
+            const q = quizData[currentQuizIndex];
+            document.getElementById('qNum').innerText = currentQuizIndex + 1;
+            document.getElementById('qText').innerText = q.q;
+            const optionsArea = document.getElementById('optionsArea');
+            optionsArea.innerHTML = "";
+            q.options.forEach(opt => {
+                const div = document.createElement('div');
+                div.className = "quiz-option";
+                div.onclick = () => {
+                    selectedAnswer = opt;
+                    document.querySelectorAll('.quiz-option').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    document.getElementById('nextBtn').disabled = false;
+                };
+                div.innerHTML = `<input type="radio" name="quizOpt" value="${opt}"> <label>${opt}</label>`;
+                optionsArea.appendChild(div);
+            });
+        }
+
+        function goToNextQuestion() {
+            if(selectedAnswer === quizData[currentQuizIndex].a) score++;
+            currentQuizIndex++;
+            if(currentQuizIndex < quizData.length) loadQuestion();
+            else showResult();
+        }
+
+        function showResult() {
+            document.getElementById('quizContainer').classList.add('hidden');
+            document.getElementById('quizResultArea').classList.remove('hidden');
+            document.getElementById('finalScore').innerText = `Your Score: ${score} / ${quizData.length}`;
+        }
+
+        async function saveProfile() {
+            const profileData = {
+                username: currentUser,
+                name: document.getElementById('p_name').value,
+                dob: document.getElementById('p_dob').value,
+                mob: document.getElementById('p_mob').value,
+                email: document.getElementById('p_email').value,
+                adhar: document.getElementById('p_adhar').value,
+                add: document.getElementById('p_add').value,
+                about: document.getElementById('p_about').value
+            };
+            const response = await fetch('/save-profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(profileData) });
+            const data = await response.json();
+            if(data.success) alert("Profile Saved!");
+        }
+
+        async function updateDashboard() {
+            const response = await fetch(`/get-user-data?username=${currentUser}`);
+            const data = await response.json();
+            const count = data.progress ? data.progress.length : 0;
+            const percent = Math.round((count / 10) * 100);
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').innerText = `Courses Completed: ${count}/10 (${percent}%)`;
+            document.getElementById('userGreeting').innerText = `Hello, ${data.profile.name || currentUser} !`;
+
+            if(data.profile) {
+                document.getElementById('p_name').value = data.profile.name || '';
+                document.getElementById('p_dob').value = data.profile.dob || '';
+                document.getElementById('p_mob').value = data.profile.mob || '';
+                document.getElementById('p_email').value = data.profile.email || '';
+                document.getElementById('p_adhar').value = data.profile.adhar || '';
+                document.getElementById('p_add').value = data.profile.add || '';
+                document.getElementById('p_about').value = data.profile.about || '';
+            }
+        }
+
+        async function markComplete(lesson) {
+            await fetch('/update-progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser, lesson }) });
+            alert(lesson + " marked as completed!");
+            showPage('dashboard');
+        }
+
+        window.onload = () => {
+            const user = localStorage.getItem('user');
+            if (user) { currentUser = user; showLoggedIn(); showPage('dashboard'); }
+        };
+    </script>
+</body>
+</html>
